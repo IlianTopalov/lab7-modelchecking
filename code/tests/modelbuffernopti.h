@@ -7,6 +7,8 @@
 #include "pcosynchro/pcosemaphore.h"
 #include "pcoconcurrencyanalyzer.h"
 
+#include "abstractbuffer.h"
+
 class ThreadProducer : public ObservableThread {  // TODO Extend AbstractBuffer
 public:
     explicit ThreadProducer(std::string id = "") : ObservableThread(std::move(id)) {
