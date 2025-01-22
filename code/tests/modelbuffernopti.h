@@ -2,6 +2,7 @@
 #define MODELBUFFERNOPTI_H
 
 #define BUFFER_SIZE 10
+#define SCENARIO_AMOUNT 100
 
 #include <iostream>
 
@@ -171,12 +172,7 @@ int ThreadProdCon::bufferSize = BUFFER_SIZE; // or any other appropriate initial
 unsigned ThreadProdCon::nbWaitingProd = 0;
 unsigned ThreadProdCon::nbWaitingConso = 0;
 
-template <typename T>
 class ModelProdConsOpti : public PcoModel {
-    ModelProdConsOpti(int size, int scenarioAmount = 1) : elements(BUFFER_SIZE), scenarioAmount(scenarioAmount),
-                                                            writePointer(0), readPointer(0), nbElements(0), bufferSize(BUFFER_SIZE),
-                                                            mutex(1), waitProd(0), waitConso(0), nbWaitingProd(0), nbWaitingConso(0) {
-    }
 
     bool checkInvariants() override {
         return true;
@@ -194,13 +190,14 @@ class ModelProdConsOpti : public PcoModel {
         // Would have been cleaner to have some sort of intermediate class with virtual depth()
         // to handle this but threads (from PcoModel) is already <ObservableThread>
         for (auto &t : threads) {
-            if(auto *producer = dynamic_cast<ThreadProducer *>(t.get()))
+            if(auto *producer = dynamic_cast<ThreadProdCon *>(t.get()))
                 depth += producer->depth();
-            else if(auto *consumer = dynamic_cast<ThreadConsumer *>(t.get()))
-                depth += consumer->depth();
         }
-        // If scenarioAmount = 1 => generates all scenarios
-        scenarioBuilder = std::make_unique<ScenarioBuilderBuffer>(scenarioAmount);
+#ifdef SCENARIO_AMOUNT
+        scenarioBuilder = std::make_unique<ScenarioBuilderBuffer>(SCENARIO_AMOUNT);
+#else
+        scenarioBuilder = std::make_unique<ScenarioBuilderBuffer>();
+#endif
         scenarioBuilder->init(threads, depth);
     }
 
@@ -221,8 +218,8 @@ class ModelProdConsOpti : public PcoModel {
         std::cout << std::flush;
     }
 
-    private:
-        int scenarioAmount;
+    // private:
+        // int scenarioAmount = 1;
 };
 
 #endif // MODELBUFFERNOPTI_H
