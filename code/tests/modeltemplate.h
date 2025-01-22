@@ -37,12 +37,12 @@ std::unique_ptr<PcoSemaphore> TemplateThreadBlock::semaphore = nullptr;
 
 class TemplateModelBlock : public PcoModel
 {
-    bool checkInvariants() override 
+    bool checkInvariants() override
     {
         return true;
     }
-    
-    
+
+
     void build() override
     {
 
@@ -53,12 +53,12 @@ class TemplateModelBlock : public PcoModel
 
     }
 
-    void postRun(Scenario &scenario) override 
+    void postRun(Scenario &scenario) override
     {
 
     }
 
-    void finalReport() override 
+    void finalReport() override
     {
 
     }
