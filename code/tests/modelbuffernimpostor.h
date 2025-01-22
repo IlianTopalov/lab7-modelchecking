@@ -184,8 +184,6 @@ class ModelProdConsImpostor : public PcoModel {
         threads.emplace_back(std::make_unique<ThreadConsumer>("consumer1"));
 
         scenarioBuilder = std::make_unique<ScenarioBuilderBuffer>();
-
-        scenarioBuilder = std::make_unique<ScenarioBuilderBuffer>();
         scenarioBuilder->init(threads, 9);  // TODO Change recursion depth ?
     }
 

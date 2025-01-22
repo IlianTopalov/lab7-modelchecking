@@ -3,6 +3,8 @@
 #include "modelnumbers.h"
 #include "pcomodelchecker.h"
 
+#include "modelbuffernimpostor.h"
+
 #include <pcosynchro/pcomanager.h>
 
 int main(int /*argc*/, char */*argv*/[])
@@ -12,18 +14,31 @@ int main(int /*argc*/, char */*argv*/[])
 
     // Model template
     {
-        // TemplateModelBlock model;
-        // PcoModelChecker checker;
-        // checker.setModel(&model);
-        // checker.run();
+        /*
+        TemplateModelBlock model;
+        PcoModelChecker checker;
+        checker.setModel(&model);
+        checker.run();
+        */
     }
+
+    // Numbers ModelCheck (example)
     {
+        /*
         ModelNumbers model;
         PcoModelChecker checker;
         checker.setModel(&model);
         checker.run();
+        */
     }
 
+    // Impostor ModelCheck
+    {
+        ModelProdConsImpostor model;
+        PcoModelChecker checker;
+        checker.setModel(&model);
+        checker.run();
+    }
 
     return 0;
 }
