@@ -13,7 +13,7 @@ class PcoConcurrencyAnalyzer;
 class AnalyzerWatchDog : public PcoWatchDog
 {
 public:
-    ~AnalyzerWatchDog() override;
+    ~AnalyzerWatchDog();
 
     void run();
 
