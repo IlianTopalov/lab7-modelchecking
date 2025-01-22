@@ -17,6 +17,7 @@ public:
 
     static void init()
     {
+        
     }
 
     static void clean()
@@ -49,6 +50,7 @@ class TemplateModelBlock : public PcoModel
 
     void preRun(Scenario& /*scenario*/) override
     {
+
     }
 
     void postRun(Scenario &scenario) override 
