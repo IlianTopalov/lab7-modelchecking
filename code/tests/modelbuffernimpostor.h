@@ -16,12 +16,30 @@ protected:
     int readPointer;
     int bufferSize;
 
+    // Pointers to shared semaphores
+    static std::unique_ptr<PcoSemaphore> mutex;
+    static std::unique_ptr<PcoSemaphore> waitNotFull;
+    static std::unique_ptr<PcoSemaphore> waitNotEmpty;
+
 public:
     explicit ThreadProducer(std::string id = "", std::vector<int>& elements) : ObservableThread(std::move(id)),
-    bufferSize(this->elements.capacity()),
+    elements(elements),
     writePointer(0), readPointer(0),
-    elements(elements) {
+    bufferSize(this->elements.capacity()) {
         scenarioGraph = std::make_unique<ScenarioGraph>();
+        auto scenario = scenarioGraph->createNode(this, -1);
+        auto p6 = scenarioGraph->createNode(this, 6);
+        auto p7 = scenarioGraph->createNode(this, 7);
+        auto p8 = scenarioGraph->createNode(this, 8);
+        auto p9 = scenarioGraph->createNode(this, 9);
+        auto p10 = scenarioGraph->createNode(this, 10);
+
+        scenario->next.push_back(p6);
+        p6->next.push_back(p7);
+        p7->next.push_back(p8);
+        p8->next.push_back(p9);
+        p9->next.push_back(p10);
+        scenarioGraph->setInitialNode(scenario);
     }
 
     static void init() {
@@ -32,25 +50,27 @@ public:
     }
 
     void put(int item) override {
-        // Section 1
-        waitNotFull.acquire();  // Should come after mutex acquire
-        // Section 2
+        startSection(6);
+        waitNotFull.acquire();  // Should come after mutex acquire to be correct
+
+        startSection(7);
         mutex.acquire();
-        // Section 3
+
+        startSection(8);
         elements[writePointer] = item;
         writePointer = (writePointer + 1) % bufferSize;
-        // Section 4
+
+        startSection(9);
         waitNotEmpty.release();
-        // Section 5
+
+        startSection(10);
         mutex.release();
     }
 
 private:
-    static std::unique_ptr<PcoSemaphore> mutex;
-    static std::unique_ptr<PcoSemaphore> waitNotFull;
-    static std::unique_ptr<PcoSemaphore> waitNotEmpty;
-
-
+    /**
+     * Produce and put 3 items in the buffer
+     */
     void run() override {
         int item1 = 3,
             item2 = 2,
@@ -59,6 +79,8 @@ private:
         put(item1);
         put(item2);
         put(item3);
+        
+        endScenario();  // TODO should be in put() ?
     }
 };
 
@@ -70,12 +92,30 @@ protected:
     int readPointer;
     int bufferSize;
 
+    // Pointers to shared semaphores
+    static std::unique_ptr<PcoSemaphore> mutex;
+    static std::unique_ptr<PcoSemaphore> waitNotFull;
+    static std::unique_ptr<PcoSemaphore> waitNotEmpty;
+
 public:
     explicit ThreadConsumer(std::string id = "") : ObservableThread(std::move(id)),
-    bufferSize(this->elements.capacity()),
+    elements(elements),
     writePointer(0), readPointer(0),
-    elements(elements) {
+    bufferSize(this->elements.capacity()) {
         scenarioGraph = std::make_unique<ScenarioGraph>();
+        auto scenario = scenarioGraph->createNode(this, -1);
+        auto p1 = scenarioGraph->createNode(this, 1);
+        auto p2 = scenarioGraph->createNode(this, 2);
+        auto p3 = scenarioGraph->createNode(this, 3);
+        auto p4 = scenarioGraph->createNode(this, 4);
+        auto p5 = scenarioGraph->createNode(this, 5);
+
+        scenario->next.push_back(p1);
+        p1->next.push_back(p2);
+        p2->next.push_back(p3);
+        p3->next.push_back(p4);
+        p4->next.push_back(p5);
+        scenarioGraph->setInitialNode(scenario);
     }
 
     static void init() {
@@ -88,26 +128,29 @@ public:
 
     int get() override {
         int item;
-        // Section 1
-        waitNotEmpty.acquire();  // Should come after mutex acquire
-        // Section 2
+        startSection(1);
+        waitNotEmpty.acquire();  // Should come after mutex acquire to be correct
+
+        startSection(2);
         mutex.acquire();
-        // Section 3
+
+        startSection(3);
         item = elements[readPointer];
         readPointer = (readPointer + 1) % bufferSize;
-        // Section 4
+
+        startSection(4);
         waitNotFull.release();
-        // Section 5
+
+        startSection(5);
         mutex.release();
 
         return item;
     }
 
 private:
-    static std::unique_ptr<PcoSemaphore> mutex;
-    static std::unique_ptr<PcoSemaphore> waitNotFull;
-    static std::unique_ptr<PcoSemaphore> waitNotEmpty;
-
+    /**
+     * Consume and remove 3 items from the buffer
+     */
     void run() override {
         int item1,
             item2,
@@ -116,14 +159,15 @@ private:
         item1 = get();
         item2 = get();
         item3 = get();
-        
 
+        endScenario();  // Should be in get() ?
     }
 };
 
-std::unique_ptr<PcoSemaphore> ThreadProducer::mutex = nullptr;
-std::unique_ptr<PcoSemaphore> ThreadProducer::waitNotFull = nullptr;
-std::unique_ptr<PcoSemaphore> ThreadProducer::waitNotEmpty = nullptr;
+// Shared semaphores
+std::unique_ptr<PcoSemaphore> ThreadProducer::mutex = std::make_unique<PcoSemaphore>();
+std::unique_ptr<PcoSemaphore> ThreadProducer::waitNotFull = std::make_unique<PcoSemaphore>();
+std::unique_ptr<PcoSemaphore> ThreadProducer::waitNotEmpty = std::make_unique<PcoSemaphore>();
 
 class ModelProdConsImpostor : public PcoModel {
 
@@ -135,6 +179,11 @@ class ModelProdConsImpostor : public PcoModel {
     void build() override {
         
         std::vector<int> elements(SIZE);
+
+        threads.emplace_back(std::make_unique<ThreadProducer>("producer1"));
+        threads.emplace_back(std::make_unique<ThreadConsumer>("consumer1"));
+
+        scenarioBuilder = std::make_unique<ScenarioBuilderBuffer>();
 
         scenarioBuilder = std::make_unique<ScenarioBuilderBuffer>();
         scenarioBuilder->init(threads, 9);  // TODO Change recursion depth ?
