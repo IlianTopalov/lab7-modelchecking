@@ -51,20 +51,20 @@ public:
 
     void put(int item) override {
         startSection(6);
-        waitNotFull.acquire();  // Should come after mutex acquire to be correct
+        waitNotFull->acquire();  // Should come after mutex acquire to be correct
 
         startSection(7);
-        mutex.acquire();
+        mutex->acquire();
 
         startSection(8);
         elements[writePointer] = item;
         writePointer = (writePointer + 1) % bufferSize;
 
         startSection(9);
-        waitNotEmpty.release();
+        waitNotEmpty->release();
 
         startSection(10);
-        mutex.release();
+        mutex->release();
     }
 
 private:
@@ -129,20 +129,20 @@ public:
     int get() override {
         int item;
         startSection(1);
-        waitNotEmpty.acquire();  // Should come after mutex acquire to be correct
+        waitNotEmpty->acquire();  // Should come after mutex acquire to be correct
 
         startSection(2);
-        mutex.acquire();
+        mutex->acquire();
 
         startSection(3);
         item = elements[readPointer];
         readPointer = (readPointer + 1) % bufferSize;
 
         startSection(4);
-        waitNotFull.release();
+        waitNotFull->release();
 
         startSection(5);
-        mutex.release();
+        mutex->release();
 
         return item;
     }
