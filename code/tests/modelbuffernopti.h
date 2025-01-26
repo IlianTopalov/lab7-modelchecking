@@ -1,7 +1,6 @@
 #ifndef MODELBUFFERNOPTI_H
 #define MODELBUFFERNOPTI_H
 
-#define BUFFER_SIZE 10
 #define SCENARIO_STEP 1000000
 
 #include <iostream>
@@ -134,7 +133,7 @@ public:
         nbWaitingProd = 0;
         nbWaitingConso = 0;
         elements.clear();
-        elements.reserve(BUFFER_SIZE);
+        elements.reserve(SIZE);
         mutex = std::make_unique<PcoSemaphore>(1);
         waitProd = std::make_unique<PcoSemaphore>(0);
         waitConso = std::make_unique<PcoSemaphore>(0);
@@ -166,11 +165,11 @@ private:
 std::unique_ptr<PcoSemaphore> ThreadProdCon::mutex = std::make_unique<PcoSemaphore>(1);
 std::unique_ptr<PcoSemaphore> ThreadProdCon::waitProd = std::make_unique<PcoSemaphore>(0);
 std::unique_ptr<PcoSemaphore> ThreadProdCon::waitConso = std::make_unique<PcoSemaphore>(0);
-std::vector<int> ThreadProdCon::elements(BUFFER_SIZE);
+std::vector<int> ThreadProdCon::elements(SIZE);
 int ThreadProdCon::writePointer = 0;
 int ThreadProdCon::readPointer = 0;
 int ThreadProdCon::nbElements = 0;
-int ThreadProdCon::bufferSize = BUFFER_SIZE; // or any other appropriate initial value
+int ThreadProdCon::bufferSize = SIZE; // or any other appropriate initial value
 unsigned ThreadProdCon::nbWaitingProd = 0;
 unsigned ThreadProdCon::nbWaitingConso = 0;
 

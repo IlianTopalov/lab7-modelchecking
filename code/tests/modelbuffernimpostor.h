@@ -9,23 +9,28 @@
 
 #include "abstractbuffer.h"
 
+static PcoSemaphore mutex(1);
+static PcoSemaphore waitNotEmpty(0);
+static PcoSemaphore waitNotFull(0);
+static std::vector<int> elements(SIZE);
+static int writePointer = 0;
+static int readPointer = 0;
+static int bufferSize = SIZE;
+
 class ThreadProducer : public ObservableThread, public AbstractBuffer<int> {
 protected:
-    std::vector<int>& elements;
-    int writePointer;
-    int readPointer;
-    int bufferSize;
+    // std::vector<int>& elements;
+    // int writePointer;
+    // int readPointer;
+    // int bufferSize;
 
     // Pointers to shared semaphores
-    static std::unique_ptr<PcoSemaphore> mutex;
-    static std::unique_ptr<PcoSemaphore> waitNotFull;
-    static std::unique_ptr<PcoSemaphore> waitNotEmpty;
+    // static std::unique_ptr<PcoSemaphore> mutex;
+    // static std::unique_ptr<PcoSemaphore> waitNotFull;
+    // static std::unique_ptr<PcoSemaphore> waitNotEmpty;
 
 public:
-    explicit ThreadProducer(std::string id = "", std::vector<int>& elements) : ObservableThread(std::move(id)),
-    elements(elements),
-    writePointer(0), readPointer(0),
-    bufferSize(this->elements.capacity()) {
+    explicit ThreadProducer(std::string id = "", std::vector<int>& elements) : ObservableThread(std::move(id)) {
         scenarioGraph = std::make_unique<ScenarioGraph>();
         auto scenario = scenarioGraph->createNode(this, -1);
         auto p6 = scenarioGraph->createNode(this, 6);
@@ -87,21 +92,18 @@ private:
 
 class ThreadConsumer : public ObservableThread, public AbstractBuffer<int> {
 protected:
-    std::vector<int>& elements;
-    int writePointer;
-    int readPointer;
-    int bufferSize;
+    // std::vector<int>& elements;
+    // int writePointer;
+    // int readPointer;
+    // int bufferSize;
 
     // Pointers to shared semaphores
-    static std::unique_ptr<PcoSemaphore> mutex;
-    static std::unique_ptr<PcoSemaphore> waitNotFull;
-    static std::unique_ptr<PcoSemaphore> waitNotEmpty;
+    // static std::unique_ptr<PcoSemaphore> mutex;
+    // static std::unique_ptr<PcoSemaphore> waitNotFull;
+    // static std::unique_ptr<PcoSemaphore> waitNotEmpty;
 
 public:
-    explicit ThreadConsumer(std::string id = "") : ObservableThread(std::move(id)),
-    elements(elements),
-    writePointer(0), readPointer(0),
-    bufferSize(this->elements.capacity()) {
+    explicit ThreadConsumer(std::string id = "") : ObservableThread(std::move(id)) {
         scenarioGraph = std::make_unique<ScenarioGraph>();
         auto scenario = scenarioGraph->createNode(this, -1);
         auto p1 = scenarioGraph->createNode(this, 1);
@@ -165,9 +167,9 @@ private:
 };
 
 // Shared semaphores
-std::unique_ptr<PcoSemaphore> ThreadProducer::mutex = std::make_unique<PcoSemaphore>();
-std::unique_ptr<PcoSemaphore> ThreadProducer::waitNotFull = std::make_unique<PcoSemaphore>();
-std::unique_ptr<PcoSemaphore> ThreadProducer::waitNotEmpty = std::make_unique<PcoSemaphore>();
+// std::unique_ptr<PcoSemaphore> ThreadProducer::mutex = std::make_unique<PcoSemaphore>();
+// std::unique_ptr<PcoSemaphore> ThreadProducer::waitNotFull = std::make_unique<PcoSemaphore>();
+// std::unique_ptr<PcoSemaphore> ThreadProducer::waitNotEmpty = std::make_unique<PcoSemaphore>();
 
 class ModelProdConsImpostor : public PcoModel {
 
@@ -188,7 +190,12 @@ class ModelProdConsImpostor : public PcoModel {
     }
 
     void preRun(Scenario& /*scenario*/) override {
-
+        mutex = PcoSemaphore(1);
+        waitNotEmpty = PcoSemaphore(0);
+        waitNotFull = PcoSemaphore(0);
+        elements = Vector(SIZE);
+        writePointer = 0;
+        readPointer = 0;
     }
 
     void postRun(Scenario &scenario) override {
