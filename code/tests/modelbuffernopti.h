@@ -11,6 +11,9 @@
 
 #include "abstractbuffer.h"
 
+/// @brief ThreadProdCon class, a single class that holds static data for the buffer and implements the buffer interface but also has a run()
+/// method that will either produce or consume an item based on the id. This way, we can have a single class that can be used for both producer and consumer
+/// threads for simpler data sharing.
 class ThreadProdCon : public ObservableThread, public AbstractBuffer<int> {
 public:
     int depth() {
@@ -18,6 +21,7 @@ public:
     }
 
     explicit ThreadProdCon(std::string id = "") : ObservableThread(id) {
+        // Check if Prod or Cons based on id
         std::string lowerId = id;
         std::transform(lowerId.begin(), lowerId.end(), lowerId.begin(), ::tolower);
         if (lowerId.compare(0, 4, "prod") == 0) {
@@ -29,6 +33,7 @@ public:
         }
         scenarioGraph = std::make_unique<ScenarioGraph>();
         auto scenario = scenarioGraph->createNode(this, -1);
+        // At first done this way as Prod and Cons had different scenarios, ended up being the same, remain in case we'd have to change it
         if (isProd) {
             auto p1 = scenarioGraph->createNode(this, 1);
             auto p2 = scenarioGraph->createNode(this, 2);
@@ -66,26 +71,26 @@ public:
     }
 
     void put(int item) override {
-        startSection(1);
+        startSection(1); // Récupère le mutex et se mettra en attente si le buffer est plein
         mutex.get()->acquire();
         if (nbElements == bufferSize) {
             nbWaitingProd += 1;
             mutex.get()->release();
-            startSection(2);
+            startSection(2); // A attendu qu'un consommateur consomme un item, on le libère
             waitProd.get()->acquire();
         }
-        startSection(3);
+        startSection(3); // Place l'item dans le buffer
         elements[writePointer] = item;
         writePointer = (writePointer + 1)
                        % bufferSize;
         nbElements ++;
         if (nbWaitingConso > 0) {
-            startSection(4);
+            startSection(4); // Libère un consommateur en attente
             nbWaitingConso -= 1;
             waitConso.get()->release();
         }
         else {
-            startSection(5);
+            startSection(5); // Libère le mutex
             mutex.get()->release();
         }
         endScenario();
@@ -93,26 +98,26 @@ public:
 
     int get(void) override {
         int item;
-        startSection(1);
+        startSection(1); // Récupère le mutex et se mettra en attente si le buffer est vide
         mutex.get()->acquire();
         if (nbElements == 0) {
             nbWaitingConso += 1;
             mutex.get()->release();
-            startSection(2);
+            startSection(2); // A attendu qu'un producteur produise un item, on le libère
             waitConso.get()->acquire();
         }
-        startSection(3);
+        startSection(3); // Récupère l'item
         item = elements[readPointer];
         readPointer = (readPointer + 1)
                       % bufferSize;
         nbElements --;
         if (nbWaitingProd > 0) {
-            startSection(4);
+            startSection(4); // Libère un producteur en attente
             nbWaitingProd -= 1;
             waitProd.get()->release();
         }
         else {
-            startSection(5);
+            startSection(5); // Libère le mutex
             mutex.get()->release();
         }
         endScenario();
@@ -134,8 +139,10 @@ public:
     }
 
 private:
+    // Thread-dependant data
     bool isProd = false;
     int scenarioSize = 0;
+    // Shared data between all threads, Buffer state
     static std::unique_ptr<PcoSemaphore> mutex;
     static std::unique_ptr<PcoSemaphore> waitProd;
     static std::unique_ptr<PcoSemaphore> waitConso;
