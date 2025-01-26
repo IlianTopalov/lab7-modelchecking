@@ -56,7 +56,7 @@ public:
 
     void put(int item) override {
         startSection(6);
-        waitNotFull.get()->acquire();  // Should come after mutex acquire to be correct
+        waitNotFull.get()->acquire();
 
         startSection(7);
         mutexSem.get()->acquire();
@@ -131,7 +131,7 @@ public:
     int get() override {
         int item;
         startSection(1);
-        waitNotEmpty.get()->acquire();  // Should come after mutex acquire to be correct
+        waitNotEmpty.get()->acquire();
 
         startSection(2);
         mutexSem.get()->acquire();
