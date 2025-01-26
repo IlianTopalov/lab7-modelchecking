@@ -1,7 +1,7 @@
 #ifndef MODELBUFFERNOPTI_H
 #define MODELBUFFERNOPTI_H
 
-#define SCENARIO_STEP 1000000
+#define PREDIFINED_SCENARIO true
 
 #include <iostream>
 
@@ -41,8 +41,6 @@ public:
             p2->next.push_back(p3);
             p3->next.push_back(p4);
             p3->next.push_back(p5);
-            // p4->next.push_back(p1);
-            // p5->next.push_back(p5);
             scenarioGraph->setInitialNode(scenario);
         } else { // Consumer
             auto p1 = scenarioGraph->createNode(this, 1);
@@ -56,8 +54,6 @@ public:
             p2->next.push_back(p3);
             p3->next.push_back(p4);
             p3->next.push_back(p5);
-            // p4->next.push_back(p1);
-            // p5->next.push_back(p5);
             scenarioGraph->setInitialNode(scenario);
         }
     }
@@ -73,9 +69,9 @@ public:
         startSection(1);
         mutex.get()->acquire();
         if (nbElements == bufferSize) {
-            startSection(2);
             nbWaitingProd += 1;
             mutex.get()->release();
+            startSection(2);
             waitProd.get()->acquire();
         }
         startSection(3);
@@ -92,8 +88,7 @@ public:
             startSection(5);
             mutex.get()->release();
         }
-        endSection();
-        // endScenario();
+        endScenario();
     }
 
     int get(void) override {
@@ -101,9 +96,9 @@ public:
         startSection(1);
         mutex.get()->acquire();
         if (nbElements == 0) {
-            startSection(2);
             nbWaitingConso += 1;
             mutex.get()->release();
+            startSection(2);
             waitConso.get()->acquire();
         }
         startSection(3);
@@ -120,8 +115,7 @@ public:
             startSection(5);
             mutex.get()->release();
         }
-        endSection();
-        // endScenario();
+        endScenario();
         return item;
     }
 
@@ -150,7 +144,6 @@ private:
     static unsigned nbWaitingProd, nbWaitingConso;
 
    void run() override {
-        // startSection(1);
         int item;
         if (isProd) {
             item = 1;
@@ -158,7 +151,6 @@ private:
         } else {
             item = get();
         }
-        endScenario(); // Started in put/get
     }
 };
 
@@ -185,8 +177,8 @@ class ModelProdConsOpti : public PcoModel {
         // Create threads for our scenario
         threads.emplace_back(std::make_unique<ThreadProdCon>("Prod1"));
         threads.emplace_back(std::make_unique<ThreadProdCon>("Con1"));
-        threads.emplace_back(std::make_unique<ThreadProdCon>("Prod2"));
-        threads.emplace_back(std::make_unique<ThreadProdCon>("Con2"));
+        // threads.emplace_back(std::make_unique<ThreadProdCon>("Prod2"));
+        // threads.emplace_back(std::make_unique<ThreadProdCon>("Con2"));
         // Get the depth of the scenario
         // Would have been cleaner to have some sort of intermediate class with virtual depth()
         // to handle this but threads (from PcoModel) is already <ObservableThread>
@@ -197,7 +189,19 @@ class ModelProdConsOpti : public PcoModel {
 #ifdef SCENARIO_STEP
         scenarioBuilder = std::make_unique<ScenarioBuilderBuffer>(SCENARIO_STEP);
 #else
+#ifdef PREDIFINED_SCENARIO
+        auto prod = threads.at(0).get();
+        auto con = threads.at(1).get();
+        auto builder = std::make_unique<PredefinedScenarioBuilderIter>();
+        std::vector<Scenario> scenarios = {
+            {{prod, 1},{prod, 3},{prod, 5},{con, 1}, {con, 3}, {con, 5}},
+            {{con, 1},{prod, 1},{prod, 3},{prod, 4},{con, 2}, {con, 3}, {con, 5}}
+        };
+        builder->setScenarios(scenarios);
+        scenarioBuilder = std::move(builder);
+#else
         scenarioBuilder = std::make_unique<ScenarioBuilderBuffer>();
+#endif
 #endif
         scenarioBuilder->init(threads, depth);
     }

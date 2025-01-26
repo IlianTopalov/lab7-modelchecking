@@ -66,10 +66,10 @@ public:
         writePointer = (writePointer + 1) % bufferSize;
 
         startSection(9);
-        waitNotEmpty.get()->release();
+        mutexSem.get()->release();
 
         startSection(10);
-        mutexSem.get()->release();
+        waitNotEmpty.get()->release();
     }
 
     int get() override {
@@ -131,10 +131,10 @@ public:
     int get() override {
         int item;
         startSection(1);
-        mutexSem.get()->acquire();
+        waitNotEmpty.get()->acquire();  // Should come after mutex acquire to be correct
 
         startSection(2);
-        waitNotEmpty.get()->acquire();  // Should come after mutex acquire to be correct
+        mutexSem.get()->acquire();
 
         startSection(3);
         item = elements[readPointer];
@@ -182,10 +182,12 @@ class ModelProdConsImpostor : public PcoModel {
         std::vector<int> elements(SIZE);
 
         threads.emplace_back(std::make_unique<ThreadProducer>("producer1"));
+        threads.emplace_back(std::make_unique<ThreadProducer>("producer2"));
         threads.emplace_back(std::make_unique<ThreadConsumer>("consumer1"));
+        threads.emplace_back(std::make_unique<ThreadConsumer>("consumer2"));
 
         scenarioBuilder = std::make_unique<ScenarioBuilderBuffer>();
-        scenarioBuilder->init(threads, 10);  // TODO Change recursion depth ?
+        scenarioBuilder->init(threads, 20);  // TODO Change recursion depth ?
     }
 
     void preRun(Scenario& /*scenario*/) override {
