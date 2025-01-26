@@ -9,9 +9,9 @@
 
 #include "abstractbuffer.h"
 
-static PcoSemaphore mutex(1);
-static PcoSemaphore waitNotEmpty(0);
-static PcoSemaphore waitNotFull(0);
+static std::unique_ptr<PcoSemaphore> mutexSem = std::make_unique<PcoSemaphore>(1);
+static std::unique_ptr<PcoSemaphore> waitNotEmpty = std::make_unique<PcoSemaphore>(0);
+static std::unique_ptr<PcoSemaphore> waitNotFull = std::make_unique<PcoSemaphore>(0);
 static std::vector<int> elements(SIZE);
 static int writePointer = 0;
 static int readPointer = 0;
@@ -30,7 +30,7 @@ protected:
     // static std::unique_ptr<PcoSemaphore> waitNotEmpty;
 
 public:
-    explicit ThreadProducer(std::string id = "", std::vector<int>& elements) : ObservableThread(std::move(id)) {
+    explicit ThreadProducer(std::string id = "") : ObservableThread(std::move(id)) {
         scenarioGraph = std::make_unique<ScenarioGraph>();
         auto scenario = scenarioGraph->createNode(this, -1);
         auto p6 = scenarioGraph->createNode(this, 6);
@@ -56,20 +56,24 @@ public:
 
     void put(int item) override {
         startSection(6);
-        waitNotFull->acquire();  // Should come after mutex acquire to be correct
+        waitNotFull.get()->acquire();  // Should come after mutex acquire to be correct
 
         startSection(7);
-        mutex->acquire();
+        mutexSem.get()->acquire();
 
         startSection(8);
         elements[writePointer] = item;
         writePointer = (writePointer + 1) % bufferSize;
 
         startSection(9);
-        waitNotEmpty->release();
+        waitNotEmpty.get()->release();
 
         startSection(10);
-        mutex->release();
+        mutexSem.get()->release();
+    }
+
+    int get() override {
+        return 0;
     }
 
 private:
@@ -84,7 +88,7 @@ private:
         put(item1);
         put(item2);
         put(item3);
-        
+
         endScenario();  // TODO should be in put() ?
     }
 };
@@ -131,22 +135,25 @@ public:
     int get() override {
         int item;
         startSection(1);
-        waitNotEmpty->acquire();  // Should come after mutex acquire to be correct
+        waitNotEmpty.get()->acquire();  // Should come after mutex acquire to be correct
 
         startSection(2);
-        mutex->acquire();
+        mutexSem.get()->acquire();
 
         startSection(3);
         item = elements[readPointer];
         readPointer = (readPointer + 1) % bufferSize;
 
         startSection(4);
-        waitNotFull->release();
+        waitNotFull.get()->release();
 
         startSection(5);
-        mutex->release();
+        mutexSem.get()->release();
 
         return item;
+    }
+
+    void put(int /*item*/) override {
     }
 
 private:
@@ -176,10 +183,10 @@ class ModelProdConsImpostor : public PcoModel {
     bool checkInvariants() override {
         return true;
     }
-    
-    
+
+
     void build() override {
-        
+
         std::vector<int> elements(SIZE);
 
         threads.emplace_back(std::make_unique<ThreadProducer>("producer1"));
@@ -190,10 +197,10 @@ class ModelProdConsImpostor : public PcoModel {
     }
 
     void preRun(Scenario& /*scenario*/) override {
-        mutex = PcoSemaphore(1);
-        waitNotEmpty = PcoSemaphore(0);
-        waitNotFull = PcoSemaphore(0);
-        elements = Vector(SIZE);
+        mutexSem = std::make_unique<PcoSemaphore>(1);
+        waitNotEmpty = std::make_unique<PcoSemaphore>(0);
+        waitNotFull = std::make_unique<PcoSemaphore>(0);
+        elements = std::vector{SIZE};
         writePointer = 0;
         readPointer = 0;
     }
