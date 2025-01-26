@@ -2,7 +2,7 @@
 #define MODELBUFFERNOPTI_H
 
 #define BUFFER_SIZE 10
-#define SCENARIO_AMOUNT 100
+#define SCENARIO_STEP 1000000
 
 #include <iostream>
 
@@ -26,7 +26,7 @@ public:
             scenarioSize = 5;
         } else {
             isProd = false;
-            scenarioSize = 4;
+            scenarioSize = 5;
         }
         scenarioGraph = std::make_unique<ScenarioGraph>();
         auto scenario = scenarioGraph->createNode(this, -1);
@@ -42,8 +42,8 @@ public:
             p2->next.push_back(p3);
             p3->next.push_back(p4);
             p3->next.push_back(p5);
-            p4->next.push_back(p1);
-            p5->next.push_back(p5);
+            // p4->next.push_back(p1);
+            // p5->next.push_back(p5);
             scenarioGraph->setInitialNode(scenario);
         } else { // Consumer
             auto p1 = scenarioGraph->createNode(this, 1);
@@ -57,8 +57,8 @@ public:
             p2->next.push_back(p3);
             p3->next.push_back(p4);
             p3->next.push_back(p5);
-            p4->next.push_back(p1);
-            p5->next.push_back(p5);
+            // p4->next.push_back(p1);
+            // p5->next.push_back(p5);
             scenarioGraph->setInitialNode(scenario);
         }
     }
@@ -94,6 +94,7 @@ public:
             mutex.get()->release();
         }
         endSection();
+        // endScenario();
     }
 
     int get(void) override {
@@ -121,6 +122,7 @@ public:
             mutex.get()->release();
         }
         endSection();
+        // endScenario();
         return item;
     }
 
@@ -149,14 +151,14 @@ private:
     static unsigned nbWaitingProd, nbWaitingConso;
 
    void run() override {
-        startSection(1);
-        // int item;
-        // if (isProd) {
-        //     item = 1;
-        //     put(item);
-        // } else {
-        //     item = get();
-        // }
+        // startSection(1);
+        int item;
+        if (isProd) {
+            item = 1;
+            put(item);
+        } else {
+            item = get();
+        }
         endScenario(); // Started in put/get
     }
 };
@@ -193,8 +195,8 @@ class ModelProdConsOpti : public PcoModel {
             if(auto *producer = dynamic_cast<ThreadProdCon *>(t.get()))
                 depth += producer->depth();
         }
-#ifdef SCENARIO_AMOUNT
-        scenarioBuilder = std::make_unique<ScenarioBuilderBuffer>(SCENARIO_AMOUNT);
+#ifdef SCENARIO_STEP
+        scenarioBuilder = std::make_unique<ScenarioBuilderBuffer>(SCENARIO_STEP);
 #else
         scenarioBuilder = std::make_unique<ScenarioBuilderBuffer>();
 #endif
@@ -206,7 +208,9 @@ class ModelProdConsOpti : public PcoModel {
     }
 
     void postRun(Scenario &scenario) override {
-
+        std::cout << "---------------------------------------" << std::endl;
+        std::cout << "Scenario : ";
+        ScenarioPrint::printScenario(scenario);
     }
 
     void finalReport() override {
