@@ -67,9 +67,9 @@ public:
         while ((nbElements == 0) && (!finished)) {
             waitConso.wait(lk);
         }
-        if (finished) {
-            return {};
-        }
+//        if (finished) {
+//            return {};
+//        }
         item = elements[readPointer];
         readPointer = (readPointer + 1)
                       % bufferSize;
@@ -82,6 +82,11 @@ public:
         std::unique_lock<std::mutex> lk(mutex);
         finished = true;
         waitConso.notify_one();
+    }
+
+    virtual bool isFinished() {
+        std::unique_lock<std::mutex> lk(mutex);
+        return finished;
     }
 };
 

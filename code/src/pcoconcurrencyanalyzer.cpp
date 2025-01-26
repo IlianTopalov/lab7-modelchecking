@@ -80,34 +80,33 @@ void PcoConcurrencyAnalyzer::startSection(ObservableThread *thread, int sectionN
         return;
     }
 
+        while (nbWaiting > 0) {
+            waiting.notify_one();
+            nbWaiting --;
+        }
 
-    while (nbWaiting > 0) {
-        waiting.notify_one();
-        nbWaiting --;
-    }
+        while ((scenario.at(index).number != sectionNumber) || (scenario.at(index).thread != thread)) {
 
-    while ((scenario.at(index).number != sectionNumber) || (scenario.at(index).thread != thread)) {
+            if ((nbWaiting + PcoManager::getInstance()->nbBlockedThreads() == nbRunningThreads - 1)) {
 
-        if ((nbWaiting + PcoManager::getInstance()->nbBlockedThreads() == nbRunningThreads - 1)) {
+                endingStatus = EndingStatus::DeadEnd;
+                PcoManager::getInstance()->setFreeMode();
 
-            endingStatus = EndingStatus::DeadEnd;
-            PcoManager::getInstance()->setFreeMode();
-
-            aborting = true;
-            for (int i = 0; i < nbWaiting; i++) {
-                waiting.notify_one();
+                aborting = true;
+                for (int i = 0; i < nbWaiting; i++) {
+                    waiting.notify_one();
+                }
+                nbWaiting = 0;
+                ENDING;
+                return;
             }
-            nbWaiting = 0;
-            ENDING;
-            return;
+            nbWaiting ++;
+            waiting.wait(lock);
+            if (aborting) {
+                ENDING;
+                return;
+            }
         }
-        nbWaiting ++;
-        waiting.wait(lock);
-        if (aborting) {
-            ENDING;
-            return;
-        }
-    }
     currentThread = thread;
 
     checkInvariants();
