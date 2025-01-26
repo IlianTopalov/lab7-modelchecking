@@ -8,6 +8,7 @@
 #include "modelbuffernimpostor.h"
 
 #include <pcosynchro/pcomanager.h>
+#include <cstring>
 
 int main(int argc, char *argv[])
 {
@@ -36,7 +37,7 @@ int main(int argc, char *argv[])
     }
 
     // Opti ModelCheck
-    if (argc == 1 || argc == 2 && argv[1] == "opti" )
+    if (argc == 1 || (argc == 2 && strcmp(argv[1], "opti") == 0) )
     {
         ModelProdConsOpti model;
         PcoModelChecker checker;
@@ -45,7 +46,7 @@ int main(int argc, char *argv[])
     }
 
     // Impostor ModelCheck
-    if (argc == 1 || argc == 2 && argv[1] == "impostor" )
+    if (argc == 1 || (argc == 2 && strcmp(argv[1], "impostor") == 0) )
     {
         ModelProdConsImpostor model;
         PcoModelChecker checker;

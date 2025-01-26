@@ -11,7 +11,7 @@
 
 static std::unique_ptr<PcoSemaphore> mutexSem = std::make_unique<PcoSemaphore>(1);
 static std::unique_ptr<PcoSemaphore> waitNotEmpty = std::make_unique<PcoSemaphore>(0);
-static std::unique_ptr<PcoSemaphore> waitNotFull = std::make_unique<PcoSemaphore>(0);
+static std::unique_ptr<PcoSemaphore> waitNotFull = std::make_unique<PcoSemaphore>(SIZE);
 static std::vector<int> elements(SIZE);
 static int writePointer = 0;
 static int readPointer = 0;
@@ -81,13 +81,9 @@ private:
      * Produce and put 3 items in the buffer
      */
     void run() override {
-        int item1 = 3,
-            item2 = 2,
-            item3 = 1;
+        int item = 1;
 
-        put(item1);
-        put(item2);
-        put(item3);
+        put(item);
 
         endScenario();  // TODO should be in put() ?
     }
@@ -161,13 +157,9 @@ private:
      * Consume and remove 3 items from the buffer
      */
     void run() override {
-        int item1,
-            item2,
-            item3;
+        int item;
 
-        item1 = get();
-        item2 = get();
-        item3 = get();
+        item = get();
 
         endScenario();  // Should be in get() ?
     }
@@ -193,13 +185,13 @@ class ModelProdConsImpostor : public PcoModel {
         threads.emplace_back(std::make_unique<ThreadConsumer>("consumer1"));
 
         scenarioBuilder = std::make_unique<ScenarioBuilderBuffer>();
-        scenarioBuilder->init(threads, 9);  // TODO Change recursion depth ?
+        scenarioBuilder->init(threads, 10);  // TODO Change recursion depth ?
     }
 
     void preRun(Scenario& /*scenario*/) override {
         mutexSem = std::make_unique<PcoSemaphore>(1);
         waitNotEmpty = std::make_unique<PcoSemaphore>(0);
-        waitNotFull = std::make_unique<PcoSemaphore>(0);
+        waitNotFull = std::make_unique<PcoSemaphore>(SIZE);
         elements = std::vector{SIZE};
         writePointer = 0;
         readPointer = 0;
