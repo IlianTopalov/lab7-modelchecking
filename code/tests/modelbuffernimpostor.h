@@ -131,20 +131,20 @@ public:
     int get() override {
         int item;
         startSection(1);
-        waitNotEmpty.get()->acquire();  // Should come after mutex acquire to be correct
+        mutexSem.get()->acquire();
 
         startSection(2);
-        mutexSem.get()->acquire();
+        waitNotEmpty.get()->acquire();  // Should come after mutex acquire to be correct
 
         startSection(3);
         item = elements[readPointer];
         readPointer = (readPointer + 1) % bufferSize;
 
         startSection(4);
-        waitNotFull.get()->release();
+        mutexSem.get()->release();
 
         startSection(5);
-        mutexSem.get()->release();
+        waitNotFull.get()->release();
 
         return item;
     }
